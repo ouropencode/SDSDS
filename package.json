@@ -1,7 +1,7 @@
 {
   "name": "sdsds",
-  "version": "0.1.0",
-  "description": "Self Discovering Synchronized Data Store",
+  "version": "0.1.1",
+  "description": "SDSDS is a data storage system that automatically discovers peers in the same subnet (using UDP broadcast) and synchronizes (over TCP) a shared data object between them. Changes propagate to all nodes and each node acts as a redundant to the other nodes. This system requires no central point of failure (other than the network itself).",
   "main": "index.js",
   "license": "LGPLv3",
   "keywords": ["data", "store", "self", "discovering", "synchronized"],
