@@ -1,4 +1,4 @@
-# Self Discovering Synchronized Data Store
+## Self Discovering Synchronized Data Store
 SDSDS is a data storage system that automatically discovers peers in the same subnet (using UDP broadcast) and synchronizes (over TCP) a shared data object between them. Changes propagate to all nodes and each node acts as a redundant to the other nodes. This system requires no central point of failure (other than the network itself).
 
 ## Installing
@@ -49,7 +49,7 @@ A node will decide upon receiving data if this data is relevant compared to the 
 
 ## Documentation
 ### Constructor
-`new SDSDS([host], [port], [data], [udpSwarmPort], [debugLevel]); // => SDSDS instance`
+#### new SDSDS([host], [port], [data], [udpSwarmPort], [debugLevel])
 
 **host**: The IP address/hostname of this machine (has to be accessible from the other nodes). If this is omitted the system will attempt to discover the IP address from your first network interface (this may be incorrect!)
 
