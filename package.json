@@ -1,0 +1,31 @@
+{
+  "name": "SDSDS",
+  "version": "0.1.0",
+  "description": "Self Discovering Synchronized Data Store",
+  "main": "index.js",
+  "license": "LGPLv3",
+  "keywords": ["data", "store", "self", "discovering", "synchronized"],
+  "author": "Peter Corcoran <peter@lemondigits.com>",
+  "homepage": "http://www.ouropencode.com/SDSDS",
+  "engines": {
+	"node": ">=0.10.26"
+  },
+  "contributors": [{
+	"name": "Peter Corcoran",
+	"email": "peter@lemondigits.com"
+  }],
+  "dependencies": {
+    "json-socket": "^0.1.2"
+  },
+  "scripts": {
+    "example": "node example.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+	"type": "git",
+	"url": "https://github.com/ouropencode/SDSDS"
+  },
+  "bugs": {
+	"url": "https://github.com/ouropencode/SDSDS/issues"
+  }
+}
