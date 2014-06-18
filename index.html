@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>SDSDS by ouropencode</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>SDSDS</h1>
+        <h2>Self Discovering Synchronized Data Store</h2>
+        <a href="https://github.com/ouropencode/SDSDS" class="button"><small>View project on</small>GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h2>
+<a name="self-discovering-synchronized-data-store" class="anchor" href="#self-discovering-synchronized-data-store"><span class="octicon octicon-link"></span></a>Self Discovering Synchronized Data Store</h2>
+
+<p>SDSDS is a data storage system that automatically discovers peers in the same subnet (using UDP broadcast) and synchronizes (over TCP) a shared data object between them. Changes propagate to all nodes and each node acts as a redundant to the other nodes. This system requires no central point of failure (other than the network itself).</p>
+
+<h2>
+<a name="installing" class="anchor" href="#installing"><span class="octicon octicon-link"></span></a>Installing</h2>
+
+<p>SDSDS only requires one other module, and does not require compilation. To get started with SDSDS should be as simple as: <code>npm install sdsds</code></p>
+
+<h2>
+<a name="notes" class="anchor" href="#notes"><span class="octicon octicon-link"></span></a>Notes</h2>
+
+<ul>
+<li>Any data you store in the data store HAS to be an object and will have a 'timestamp' key added to it, this is to allow nodes to determine the last modified time.</li>
+<li>You should frequently checkpoint the stored data to a file (or database), and load this file when the library starts. SDSDS does not manage persistance of the data, only sharing the data. (an example of howto checkpoint is provided in the 'examples' directory)</li>
+</ul><h2>
+<a name="example" class="anchor" href="#example"><span class="octicon octicon-link"></span></a>Example</h2>
+
+<pre><code>var SDSDS = require('sdsds');
+
+var sdsds = new SDSDS();
+sdsds.on('listening', function() {
+    // from this point onwards, we can assume we have access to the data store.
+    // however, this does not ensure we have synchronized with any nodes,
+    // we may even be the first active node on the network.
+
+    // any data you store in the data store HAS to be an object and will have
+    // a 'timestamp' key added to it, this is to allow nodes to determine the
+    // last modified time.
+
+    sdsds.set("key", {"value":123});
+    sdsds.get("key"); // =&gt; {"value":123, "timestamp": xxxxxx}
+    sdsds.getAll();   // =&gt; {"key": {"value":123, "timestamp":xxxxxx}}
+});
+</code></pre>
+
+<h2>
+<a name="how-does-sdsds-work" class="anchor" href="#how-does-sdsds-work"><span class="octicon octicon-link"></span></a>How does SDSDS work?</h2>
+
+<p>SDSDS is a combination of a TCP server, a TCP client, a UDP client and a UDP server.</p>
+
+<h3>
+<a name="node-discovery" class="anchor" href="#node-discovery"><span class="octicon octicon-link"></span></a>Node Discovery</h3>
+
+<p>Nodes are discovered using UDP broadcast packets to discover other nodes in the same subnet. This is achieved through the use of beacon packets that are sent every five (5) seconds. After a node receives the knowledge of a previously unknown (or a no longer connected) node, it attempts to make a connection and switches to the TCP protocol for handling data transfer.</p>
+
+<h3>
+<a name="data-transfer" class="anchor" href="#data-transfer"><span class="octicon octicon-link"></span></a>Data Transfer</h3>
+
+<p>Internally there are two methods of data transfer over TCP. We current support a 'full synchronization' and a 'write notify'.</p>
+
+<h3>
+<a name="full-synchronization" class="anchor" href="#full-synchronization"><span class="octicon octicon-link"></span></a>Full Synchronization</h3>
+
+<p>The system will fully synchronize the whole shared data object whenever a new node connects to it. As a connection is made to the TCP server, the server sends the enter data object to the client. The client then decides which data is relevant compared to the data it initialized with. (Eventually the system may send periodic full synchronization packets to confirm the data store is still intact)</p>
+
+<h3>
+<a name="write-notify" class="anchor" href="#write-notify"><span class="octicon octicon-link"></span></a>Write Notify</h3>
+
+<p>After a key has been set or modified in the data store, the node will transmit to all other connected nodes that this write operation has been applied. The receiving nodes will then decide if the data is relevant compared to it's current data.</p>
+
+<h3>
+<a name="data-relevancy" class="anchor" href="#data-relevancy"><span class="octicon octicon-link"></span></a>Data relevancy</h3>
+
+<p>A node will decide upon receiving data if this data is relevant compared to the current data it has. This is all based around a unix timestamp, if the incoming data is older than the data the node currently has, it will be rejected. This poses an issue if the node's clocks are out of sync, however this isn't really an issue if data isn't being rapidly fired.</p>
+
+<h2>
+<a name="documentation" class="anchor" href="#documentation"><span class="octicon octicon-link"></span></a>Documentation</h2>
+
+<h3>
+<a name="constructor" class="anchor" href="#constructor"><span class="octicon octicon-link"></span></a>Constructor</h3>
+
+<h4>
+<a name="new-sdsdshost-port-data-udpswarmport-debuglevel" class="anchor" href="#new-sdsdshost-port-data-udpswarmport-debuglevel"><span class="octicon octicon-link"></span></a>new SDSDS([host], [port], [data], [udpSwarmPort], [debugLevel])</h4>
+
+<p><strong>host</strong>: The IP address/hostname of this machine (has to be accessible from the other nodes). If this is omitted the system will attempt to discover the IP address from your first network interface (this may be incorrect!)</p>
+
+<p><strong>port</strong>: The port that the TCP transfer runs upon.</p>
+
+<p><strong>data</strong>: An object containing the initial data for this node, if a node has crashed an is rebooting, this should contain the last data it knew about, if ommitted the data will remain empty until changed, or another node is connected.</p>
+
+<p><strong>debugLevel</strong>: This dictates the level of debugging output to console. It defaults to only errors ("ERR"), but the valid options are: "ERR", "WRN", "DBG" and "ALL".</p>
+
+<h3>
+<a name="methods" class="anchor" href="#methods"><span class="octicon octicon-link"></span></a>Methods</h3>
+
+<h4>
+<a name="sdsdsgetkey" class="anchor" href="#sdsdsgetkey"><span class="octicon octicon-link"></span></a>sdsds.get(key)</h4>
+
+<p>Retrieve data from the data store. Returns the data object, or undefined if the key was not found.</p>
+
+<p><strong>key</strong>: the unique key that your data is attached to. </p>
+
+<h4>
+<a name="sdsdssetkey-value" class="anchor" href="#sdsdssetkey-value"><span class="octicon octicon-link"></span></a>sdsds.set(key, value)</h4>
+
+<p>Set or modify data stored in the data store. Returns true if the data was saved successfully.</p>
+
+<p><strong>key</strong>: the unique key that your data is attached to.</p>
+
+<p><strong>value</strong>: an object that contains the data (a 'timestamp' key will be added to this object to track synchronization.</p>
+
+<h4>
+<a name="sdsdsgetall" class="anchor" href="#sdsdsgetall"><span class="octicon octicon-link"></span></a>sdsds.getAll()</h4>
+
+<p>Retrieve all data stored in the data store. Returns the entire data store object.</p>
+
+<h4>
+<a name="sdsdsclose" class="anchor" href="#sdsdsclose"><span class="octicon octicon-link"></span></a>sdsds.close()</h4>
+
+<p>Closes all open TCP and UDP connections. The instance of SDSDS is useless from this point and should be discarded.</p>
+
+<h4>
+<a name="sdsdsoneventname-callback" class="anchor" href="#sdsdsoneventname-callback"><span class="octicon octicon-link"></span></a>sdsds.on(eventName, callback)</h4>
+
+<p>Listens for an event and executes the callback upon firing.</p>
+
+<p><strong>eventName</strong>: the event name (see 'Events' for a list of events).
+<strong>callback</strong>: a function to call when the event fires.</p>
+
+<h4>
+<a name="sdsdsfireeventname-arguments" class="anchor" href="#sdsdsfireeventname-arguments"><span class="octicon octicon-link"></span></a>sdsds.fire(eventName[, arguments])</h4>
+
+<p>Fires an event to all listeners. SDSDS does not internally listen for events, firing 'close' will NOT close SDSDS. This is mainly useful for triggering other code that is listening for SDSDS events.</p>
+
+<p><strong>eventName</strong>: the event name (see 'Events' for a list of events).
+<strong>arguments</strong>: any number of arguments can be passed to the event (it's recommended to match the arguments that are usually provided by the event).</p>
+
+<h3>
+<a name="events" class="anchor" href="#events"><span class="octicon octicon-link"></span></a>Events</h3>
+
+<h4>
+<a name="listening" class="anchor" href="#listening"><span class="octicon octicon-link"></span></a>listening()</h4>
+
+<p>Fired when both the TCP and UDP servers have started.</p>
+
+<h4>
+<a name="errorerrormessage" class="anchor" href="#errorerrormessage"><span class="octicon octicon-link"></span></a>error(errorMessage)</h4>
+
+<p>Fired when an internal error occurs (this should also pass through any TCP/UDP server/client errors)</p>
+
+<h4>
+<a name="close" class="anchor" href="#close"><span class="octicon octicon-link"></span></a>close()</h4>
+
+<p>Fired when both the TCP and UDP servers have been closed.</p>
+
+<h4>
+<a name="disconnectednodeinstance" class="anchor" href="#disconnectednodeinstance"><span class="octicon octicon-link"></span></a>disconnected(nodeInstance)</h4>
+
+<p>Fired when the current node disconnects from a remote node's TCP server.</p>
+
+<p><strong>nodeInstance</strong>: an object describing the node that the event applies to.</p>
+
+<h4>
+<a name="connectednodeinstance" class="anchor" href="#connectednodeinstance"><span class="octicon octicon-link"></span></a>connected(nodeInstance)</h4>
+
+<p>Fired when the current node connects (and the handshake completes) to a remote node's TCP server.</p>
+
+<p><strong>nodeInstance</strong>: an object describing the node that the event applies to.</p>
+
+<h4>
+<a name="joinednodeinstance" class="anchor" href="#joinednodeinstance"><span class="octicon octicon-link"></span></a>joined(nodeInstance)</h4>
+
+<p>Fired when a remote node connects to the current node's TCP server.</p>
+
+<p><strong>nodeInstance</strong>: an object describing the node that the event applies to.</p>
+
+<h4>
+<a name="leftnodeinstance" class="anchor" href="#leftnodeinstance"><span class="octicon octicon-link"></span></a>left(nodeInstance)</h4>
+
+<p>Fired when a remote node connects to the current node's TCP server.</p>
+
+<p><strong>nodeInstance</strong>: an object describing the node that the event applies to.</p>
+
+<h4>
+<a name="data_syncnodeinstance-data" class="anchor" href="#data_syncnodeinstance-data"><span class="octicon octicon-link"></span></a>data_sync(nodeInstance, data)</h4>
+
+<p>Fired when the whole data object has been synchronized with a remote object.</p>
+
+<p><strong>nodeInstance</strong>: an object describing the node that the event applies to.
+<strong>data</strong>: the whole shared data object (after sync)</p>
+
+<h4>
+<a name="data_writenodeinstance-key-value" class="anchor" href="#data_writenodeinstance-key-value"><span class="octicon octicon-link"></span></a>data_write(nodeInstance, key, value)</h4>
+
+<p>Fired when a data entry has been written to from a remote object.</p>
+
+<p><strong>nodeInstance</strong>: an object describing the node that the event applies to.
+<strong>key</strong>: the key that was written too.
+<strong>value</strong>: the value that was written.</p>
+
+<h2>
+<a name="contributing" class="anchor" href="#contributing"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>SDSDS is currently a small project, maintained by a small team. We would welcome any contributions to the codebase.</p>
+
+<h2>
+<a name="maintainers" class="anchor" href="#maintainers"><span class="octicon octicon-link"></span></a>Maintainers</h2>
+
+<ul>
+<li>
+<strong>Peter Corcoran</strong> (<a href="mailto:peter@lemondigits.com">peter@lemondigits.com</a>)</li>
+</ul><h2>
+<a name="licence--copyright" class="anchor" href="#licence--copyright"><span class="octicon octicon-link"></span></a>Licence &amp; Copyright</h2>
+
+<p>SDSDS is an open source project licenced under the LGPLv3 licences, you can find more details regarding this licence in the 'LICENCE' file.</p>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/ouropencode/SDSDS/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/ouropencode/SDSDS/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/ouropencode/SDSDS"></a> is maintained by <a href="https://github.com/ouropencode">ouropencode</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
