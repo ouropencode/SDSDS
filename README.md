@@ -140,5 +140,5 @@ SDSDS is currently a small project, maintained by a small team. We would welcome
 ## Maintainers
  - **Peter Corcoran** (peter@lemondigits.com)
  
-## Licence & Copyright
-SDSDS is an open source project licenced under the LGPLv3 licences, you can find more details regarding this licence in the 'LICENCE' file.
+## License & Copyright
+SDSDS is an open source project licensed under the LGPLv3 licenses, you can find more details regarding this license in the 'LICENSE.md' file.
